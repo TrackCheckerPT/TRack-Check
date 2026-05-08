@@ -4,7 +4,7 @@ from __future__ import annotations
 from core.analyzer import TrackAnalyzer
 from core.decoder import import_polytrack
 from core.encoder import EXPORT_PREFIX, export_polytrack
-from core.generator import TrackGenerator
+from core.generator import TrackGenerator, generate_code, main
 from utils.validator import validate_track
 from utils.visualizer import visualize_track_2d
 
