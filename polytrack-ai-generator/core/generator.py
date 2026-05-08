@@ -6,17 +6,10 @@ import argparse
 import random
 from collections.abc import Callable, Sequence
 from pathlib import Path
+from typing import Any
 
-Block = list[int | float]
+Block = dict[str, Any]
 TrackBuilder = Callable[["TrackGenerator"], list[Block]]
-
-ROAD_STRAIGHT = 0
-ROAD_CURVE_90 = 1
-START_LINE = 5
-FINISH_LINE = 6
-PILLAR_SQUARE = 10
-ROAD_SLOPE = 12
-CHECKPOINT = 22
 
 
 class TrackGenerator:

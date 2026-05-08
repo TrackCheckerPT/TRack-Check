@@ -1,7 +1,7 @@
 {
   "name": "TRack-Check PolyTrack Test Builder",
   "image": "mcr.microsoft.com/devcontainers/python:1-3.12-bullseye",
-  "postCreateCommand": "python -m pip install --upgrade pip && python -m pip install -r polytrack-ai-generator/requirements.txt",
+  "postCreateCommand": "python -m pip install --upgrade pip && python -m pip install -r polytrack-ai-generator/requirements.txt && git config pull.rebase false",
   "customizations": {
     "vscode": {
       "extensions": [

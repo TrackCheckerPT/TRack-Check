@@ -28,12 +28,6 @@ git config pull.rebase false
 git pull --no-rebase origin main
 ```
 
-This repository also configures merge-based pulls automatically in two places:
-
-- the devcontainer runs `git config pull.rebase false` every time the container
-  starts, not just when it is created;
-- VS Code runs the `Git: configure merge pulls` task on folder open, so existing
-  Codespaces get the same repository-local Git setting after reload/reattach.
-
-Those safeguards prevent Git's "Need to specify how to reconcile divergent
-branches" message during future **Sync Changes** operations.
+The devcontainer also applies this repository-local Git setting when it is
+created or rebuilt so future **Sync Changes** operations do not fail with Git's
+"Need to specify how to reconcile divergent branches" message.
