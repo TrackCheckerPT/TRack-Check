@@ -1,0 +1,21 @@
+#!/usr/bin/env python3
+"""Root-level shortcut for generating a PolyTrack1 test-builder code.
+
+Run `python CodeMaker` or `./CodeMaker` to print one code, or pass the same
+arguments accepted by `python -m core.generator`.
+"""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+PACKAGE_ROOT = Path(__file__).resolve().parent / "polytrack-ai-generator"
+sys.path.insert(0, str(PACKAGE_ROOT))
+
+from core.generator import main
+
+
+if __name__ == "__main__":
+    args = sys.argv[1:] or ["simple-circuit", "--code-only"]
+    raise SystemExit(main(args))
