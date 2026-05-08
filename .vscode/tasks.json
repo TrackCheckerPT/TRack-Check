@@ -9,6 +9,13 @@
       "problemMatcher": []
     },
     {
+      "label": "PolyTrack: generate one code",
+      "type": "shell",
+      "command": "python CodeMaker",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
       "label": "PolyTrack: generate sample codes",
       "type": "shell",
       "command": "cd polytrack-ai-generator && python -m core.generator",

@@ -106,6 +106,51 @@ class TrackGenerator:
         return blocks
 
 
+def generate_track(
+    track: str = "simple-circuit",
+    *,
+    length: int | None = None,
+    difficulty: str = "medium",
+    seed: int | None = 123,
+    segment_spacing: float = 8.0,
+) -> list[Block]:
+    """Generate one named test track."""
+
+    generator = TrackGenerator(seed=seed, segment_spacing=segment_spacing)
+    if track == "simple-circuit":
+        return generator.generate_simple_circuit(length=8 if length is None else length)
+    if track == "obstacle":
+        return generator.generate_with_obstacles(
+            length=10 if length is None else length,
+            difficulty=difficulty,
+        )
+    raise ValueError("track must be one of: simple-circuit, obstacle")
+
+
+def generate_code(
+    track: str = "simple-circuit",
+    *,
+    length: int | None = None,
+    difficulty: str = "medium",
+    seed: int | None = 123,
+    segment_spacing: float = 8.0,
+) -> str:
+    """Generate one PolyTrack1 code string."""
+
+    blocks = generate_track(
+        track,
+        length=length,
+        difficulty=difficulty,
+        seed=seed,
+        segment_spacing=segment_spacing,
+    )
+    return _export_and_validate(blocks, track)
+
+
+def generate_all_tests(*, verbose: bool = True) -> dict[str, str]:
+    """Generate representative tracks and return export codes."""
+
+    scenarios: dict[str, tuple[TrackGenerator, TrackBuilder]] = {
 def generate_all_tests() -> dict[str, str]:
     """Generate representative tracks and return their export codes."""
 
@@ -136,6 +181,114 @@ def generate_all_tests() -> dict[str, str]:
     codes: dict[str, str] = {}
     for name, (generator, build_track) in scenarios.items():
         blocks = build_track(generator)
+        code = _export_and_validate(blocks, name)
+        if verbose:
+            _print_summary(name, blocks, code)
+        codes[name] = code
+
+    return codes
+
+
+def _export_and_validate(blocks: list[Block], name: str = "track") -> str:
+    from core.decoder import import_polytrack
+    from core.encoder import export_polytrack
+
+    code = export_polytrack(blocks)
+    decoded, error = import_polytrack(code)
+    if error is not None:
+        raise RuntimeError(f"{name} failed round-trip validation: {error}")
+    if decoded != blocks:
+        raise RuntimeError(f"{name} failed round-trip validation: decoded blocks differ")
+    return code
+
+
+def _print_summary(name: str, blocks: list[Block], code: str) -> None:
+    from core.analyzer import TrackAnalyzer
+    from utils.visualizer import visualize_track_2d
+
+    analyzer = TrackAnalyzer(blocks)
+    print(f"\n{name}")
+    print(f"  blocks: {len(blocks)}")
+    print(f"  difficulty: {analyzer.get_difficulty()}")
+    print(f"  estimated length: {analyzer.estimate_length()} units")
+    print(f"  export code: {code}")
+    print(visualize_track_2d(blocks))
+
+
+def _build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Generate deterministic PolyTrack1 test-builder codes."
+    )
+    parser.add_argument(
+        "track",
+        nargs="?",
+        default="all",
+        choices=("all", "simple-circuit", "obstacle"),
+        help="Track preset to generate. Use 'all' for verbose sample output.",
+    )
+    parser.add_argument("--length", type=int, help="Number of road segments to build.")
+    parser.add_argument(
+        "--difficulty",
+        choices=("easy", "medium", "hard"),
+        default="medium",
+        help="Obstacle density for the obstacle preset.",
+    )
+    parser.add_argument("--seed", type=int, default=123, help="Deterministic RNG seed.")
+    parser.add_argument(
+        "--segment-spacing",
+        type=float,
+        default=8.0,
+        help="Distance between generated road segments.",
+    )
+    parser.add_argument(
+        "--code-only",
+        action="store_true",
+        help="Print only PolyTrack1 code strings with no labels or previews.",
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        help="Optional file path for writing generated code strings.",
+    )
+    return parser
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """Command-line entrypoint for generating PolyTrack1 codes."""
+
+    args = _build_parser().parse_args(argv)
+
+    if args.track == "all":
+        if args.code_only:
+            codes = generate_all_tests(verbose=False)
+            output = "\n".join(codes.values())
+            print(output)
+        else:
+            codes = generate_all_tests()
+            output = "\n".join(f"{name}: {code}" for name, code in codes.items())
+    else:
+        blocks = generate_track(
+            args.track,
+            length=args.length,
+            difficulty=args.difficulty,
+            seed=args.seed,
+            segment_spacing=args.segment_spacing,
+        )
+        code = _export_and_validate(blocks, args.track)
+        output = code
+        if args.code_only:
+            print(code)
+        else:
+            _print_summary(args.track.upper(), blocks, code)
+
+    if args.output is not None:
+        args.output.write_text(f"{output}\n")
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
         export_code = export_polytrack(blocks)
         decoded, error = import_polytrack(export_code)
         if error is not None:

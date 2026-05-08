@@ -70,3 +70,22 @@ def test_visualizer_marks_start_finish_and_obstacles() -> None:
     assert "S" in drawing
     assert "F" in drawing
     assert "X" in drawing
+
+
+def test_generate_code_returns_a_polytrack_code() -> None:
+    code = generate_code("obstacle", length=6, difficulty="easy", seed=42)
+
+    decoded, error = import_polytrack(code)
+
+    assert error is None
+    assert code.startswith(EXPORT_PREFIX)
+    assert len(decoded) == 7
+
+
+def test_cli_can_print_code_only(capsys) -> None:
+    exit_code = main(["simple-circuit", "--length", "4", "--code-only"])
+
+    output = capsys.readouterr().out.strip()
+    assert exit_code == 0
+    assert output.startswith(EXPORT_PREFIX)
+    assert " " not in output

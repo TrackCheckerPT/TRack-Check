@@ -14,5 +14,6 @@ created or rebuilt, it installs the PolyTrack test-builder requirements from
 Useful VS Code tasks are also available from **Terminal > Run Task**:
 
 - `PolyTrack: run tests` runs the pytest suite.
+- `PolyTrack: generate one code` prints a single copy-ready `PolyTrack1` code.
 - `PolyTrack: generate sample codes` prints representative `PolyTrack1` sample
   codes and ASCII previews.

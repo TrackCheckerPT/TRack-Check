@@ -32,5 +32,7 @@ official editor feature yet.
 ## Codespaces tasks
 
 In GitHub Codespaces or VS Code, use **Terminal > Run Task** and select
+`PolyTrack: run tests`, `PolyTrack: generate one code`, or
+`PolyTrack: generate sample codes` for the common test-builder workflows.
 `PolyTrack: run tests` or `PolyTrack: generate sample codes` for the common
 test-builder workflows.
