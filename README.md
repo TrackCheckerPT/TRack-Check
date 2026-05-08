@@ -21,7 +21,7 @@ Useful VS Code tasks are also available from **Terminal > Run Task**:
 ## Git sync troubleshooting
 
 If VS Code or Codespaces reports that local and remote branches have diverged,
-configure pulls to merge by default before syncing:
+run this once in the terminal before pressing **Sync Changes** again:
 
 ```bash
 git config pull.rebase false

@@ -15,8 +15,10 @@
         ],
         "python.testing.pytestEnabled": true,
         "python.testing.unittestEnabled": false,
-        "git.rebaseWhenSync": false
+        "git.rebaseWhenSync": false,
+        "task.allowAutomaticTasks": "on"
       }
     }
-  }
+  },
+  "postStartCommand": "git config pull.rebase false"
 }
