@@ -28,3 +28,9 @@ python -m core.generator
 The generated code format is intentionally repository-owned while compatibility
 work continues. It should not be treated as a complete implementation of every
 official editor feature yet.
+
+## Codespaces tasks
+
+In GitHub Codespaces or VS Code, use **Terminal > Run Task** and select
+`PolyTrack: run tests` or `PolyTrack: generate sample codes` for the common
+test-builder workflows.
