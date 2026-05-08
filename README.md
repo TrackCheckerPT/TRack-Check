@@ -17,3 +17,17 @@ Useful VS Code tasks are also available from **Terminal > Run Task**:
 - `PolyTrack: generate one code` prints a single copy-ready `PolyTrack1` code.
 - `PolyTrack: generate sample codes` prints representative `PolyTrack1` sample
   codes and ASCII previews.
+
+## Git sync troubleshooting
+
+If VS Code or Codespaces reports that local and remote branches have diverged,
+configure pulls to merge by default before syncing:
+
+```bash
+git config pull.rebase false
+git pull --no-rebase origin main
+```
+
+The devcontainer also applies this repository-local Git setting when it is
+created or rebuilt so future **Sync Changes** operations do not fail with Git's
+"Need to specify how to reconcile divergent branches" message.
