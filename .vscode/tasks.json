@@ -1,0 +1,19 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "PolyTrack: run tests",
+      "type": "shell",
+      "command": "python -m pytest polytrack-ai-generator/tests -q",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "PolyTrack: generate sample codes",
+      "type": "shell",
+      "command": "cd polytrack-ai-generator && python -m core.generator",
+      "group": "build",
+      "problemMatcher": []
+    }
+  ]
+}
