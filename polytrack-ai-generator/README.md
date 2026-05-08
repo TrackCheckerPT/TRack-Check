@@ -18,27 +18,6 @@ the modern `PolyTrack1` prefix and a normalized block schema.
 python -m pytest polytrack-ai-generator/tests
 ```
 
-## Print a copy-ready PolyTrack code
-
-From the repository root, run:
-
-```bash
-python CodeMaker
-```
-
-That command prints a single `PolyTrack1...` code without labels or preview text.
-For a customized obstacle track, run:
-
-```bash
-python CodeMaker obstacle --length 12 --difficulty hard --seed 789 --code-only
-```
-
-From inside this directory, the equivalent command is:
-
-```bash
-python -m core.generator simple-circuit --code-only
-```
-
 ## Generate sample codes
 
 ```bash
@@ -55,3 +34,5 @@ official editor feature yet.
 In GitHub Codespaces or VS Code, use **Terminal > Run Task** and select
 `PolyTrack: run tests`, `PolyTrack: generate one code`, or
 `PolyTrack: generate sample codes` for the common test-builder workflows.
+`PolyTrack: run tests` or `PolyTrack: generate sample codes` for the common
+test-builder workflows.

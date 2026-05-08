@@ -2,13 +2,10 @@
 
 from __future__ import annotations
 
-import argparse
 import random
-from pathlib import Path
-from typing import Any, Callable, Sequence
+from typing import Any
 
 Block = dict[str, Any]
-TrackBuilder = Callable[["TrackGenerator"], list[Block]]
 
 
 class TrackGenerator:
@@ -154,6 +151,15 @@ def generate_all_tests(*, verbose: bool = True) -> dict[str, str]:
     """Generate representative tracks and return export codes."""
 
     scenarios: dict[str, tuple[TrackGenerator, TrackBuilder]] = {
+def generate_all_tests() -> dict[str, str]:
+    """Generate representative tracks and return their export codes."""
+
+    from core.analyzer import TrackAnalyzer
+    from core.decoder import import_polytrack
+    from core.encoder import export_polytrack
+    from utils.visualizer import visualize_track_2d
+
+    scenarios = {
         "SIMPLE_CIRCUIT": (
             TrackGenerator(seed=123),
             lambda generator: generator.generate_simple_circuit(length=8),
@@ -283,3 +289,22 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+        export_code = export_polytrack(blocks)
+        decoded, error = import_polytrack(export_code)
+        if error is not None:
+            raise RuntimeError(f"{name} failed round-trip validation: {error}")
+
+        analyzer = TrackAnalyzer(decoded)
+        print(f"\n{name}")
+        print(f"  blocks: {len(decoded)}")
+        print(f"  difficulty: {analyzer.get_difficulty()}")
+        print(f"  estimated length: {analyzer.estimate_length()} units")
+        print(f"  export code: {export_code}")
+        print(visualize_track_2d(decoded))
+        codes[name] = export_code
+
+    return codes
+
+
+if __name__ == "__main__":
+    generate_all_tests()
