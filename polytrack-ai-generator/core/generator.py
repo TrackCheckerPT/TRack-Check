@@ -1,4 +1,4 @@
-"""Deterministic helpers for building small PolyTrack-style test tracks."""
+"""Deterministic helpers for building PolyTrack 0.5.2 export tracks."""
 
 from __future__ import annotations
 
@@ -21,23 +21,22 @@ class TrackGenerator:
 
     def _block(
         self,
-        block_type: str,
-        index: int,
+        block_id: int,
         x: float,
         y: float,
-        z: float = 0.0,
-        rotation_y: float = 0.0,
+        z: float,
+        rotation: float = 0.0,
     ) -> Block:
-        return {
-            "id": index,
-            "type": block_type,
-            "position": [round(x, 3), round(y, 3), round(z, 3)],
-            "rotation": [0.0, round(rotation_y, 3), 0.0],
-            "scale": [1.0, 1.0, 1.0],
-        }
+        return [
+            block_id,
+            round(x, 3),
+            round(y, 3),
+            round(z, 3),
+            round(rotation, 3),
+        ]
 
     def generate_simple_circuit(self, length: int = 8) -> list[Block]:
-        """Create a rectangular loop with start and finish markers."""
+        """Create a rectangular loop with one start and at least one finish line."""
 
         if length < 4:
             raise ValueError("A simple circuit needs at least 4 segments")
@@ -45,69 +44,117 @@ class TrackGenerator:
         blocks: list[Block] = []
         spacing = self.segment_spacing
         side_length = max(1, (length + 3) // 4)
-        coordinates: list[tuple[float, float, float]] = []
+        coordinates: list[tuple[float, float, float, bool]] = []
         x = 0.0
-        y = 0.0
+        z = 0.0
 
-        for dx, dy, rotation in (
+        for dx, dz, rotation in (
             (spacing, 0.0, 0.0),
             (0.0, spacing, 90.0),
             (-spacing, 0.0, 180.0),
             (0.0, -spacing, 270.0),
         ):
-            for _ in range(side_length):
-                coordinates.append((x, y, rotation))
+            for step in range(side_length):
+                coordinates.append((x, z, rotation, step == 0))
                 x += dx
-                y += dy
+                z += dz
 
-        for index, (x, y, rotation) in enumerate(coordinates[:length]):
-            block_type = "road"
+        for index, (x, z, rotation, starts_side) in enumerate(coordinates[:length]):
+            block_id = (
+                ROAD_CURVE_90
+                if starts_side and index not in {0, length - 1}
+                else ROAD_STRAIGHT
+            )
             if index == 0:
-                block_type = "start"
-            elif index == min(length - 1, len(coordinates) - 1):
-                block_type = "finish"
-            blocks.append(self._block(block_type, index, x, y, rotation_y=rotation))
+                block_id = START_LINE
+            elif index == length - 1:
+                block_id = FINISH_LINE
+            blocks.append(self._block(block_id, x, 0.0, z, rotation))
 
         return blocks
 
     def generate_with_obstacles(
         self, length: int = 10, difficulty: str = "medium"
     ) -> list[Block]:
-        """Create a straight test track and insert deterministic obstacles."""
+        """Create a straight bridge with checkpoints and structural pillars."""
 
         if length < 3:
             raise ValueError("An obstacle test track needs at least 3 segments")
         if difficulty not in {"easy", "medium", "hard"}:
             raise ValueError("difficulty must be one of: easy, medium, hard")
 
-        blocks = [
-            self._block(
-                "start" if index == 0 else "finish" if index == length - 1 else "road",
-                index,
-                index * self.segment_spacing,
-                0.0,
-            )
-            for index in range(length)
-        ]
+        checkpoint_counts = {"easy": 0, "medium": 1, "hard": 2}
+        pillar_counts = {"easy": 1, "medium": 3, "hard": 5}
+        checkpoint_indexes = self._sample_indexes(length, checkpoint_counts[difficulty])
 
-        obstacle_counts = {"easy": 1, "medium": 2, "hard": 4}
-        candidate_indexes = list(range(1, length - 1))
-        self.random.shuffle(candidate_indexes)
-        for obstacle_number, segment_index in enumerate(
-            sorted(candidate_indexes[: obstacle_counts[difficulty]]), start=1
-        ):
-            x, y, z = blocks[segment_index]["position"]
-            blocks.append(
-                self._block(
-                    "barrier",
-                    length + obstacle_number - 1,
-                    x,
-                    y + self.random.choice([-2.0, 2.0]),
-                    z,
-                )
-            )
+        blocks: list[Block] = []
+        for index in range(length):
+            if index == 0:
+                block_id = START_LINE
+            elif index == length - 1:
+                block_id = FINISH_LINE
+            elif index in checkpoint_indexes:
+                block_id = CHECKPOINT
+            else:
+                block_id = ROAD_STRAIGHT
+            blocks.append(self._block(block_id, 0.0, 0.0, index * self.segment_spacing))
+
+        for segment_index in self._sample_indexes(length, pillar_counts[difficulty]):
+            z = segment_index * self.segment_spacing
+            blocks.append(self._block(PILLAR_SQUARE, -2.0, -4.0, z))
+            blocks.append(self._block(PILLAR_SQUARE, 2.0, -4.0, z))
 
         return blocks
+
+    def generate_wild_build(self, length: int = 18) -> list[Block]:
+        """Create a larger decorative route with slopes, checkpoints, and pillars."""
+
+        if length < 8:
+            raise ValueError("A wild build needs at least 8 segments")
+
+        blocks: list[Block] = []
+        x = 0.0
+        y = 0.0
+        z = 0.0
+        rotation = 0.0
+        directions = {
+            0.0: (0.0, self.segment_spacing),
+            90.0: (self.segment_spacing, 0.0),
+            180.0: (0.0, -self.segment_spacing),
+            270.0: (-self.segment_spacing, 0.0),
+        }
+
+        for index in range(length):
+            if index == 0:
+                block_id = START_LINE
+            elif index == length - 1:
+                block_id = FINISH_LINE
+            elif index % 6 == 0:
+                block_id = CHECKPOINT
+            elif index % 5 == 0:
+                block_id = ROAD_SLOPE
+                y += 2.0 if (index // 5) % 2 else -2.0
+            elif index % 4 == 0:
+                block_id = ROAD_CURVE_90
+                rotation = (rotation + 90.0) % 360.0
+            else:
+                block_id = ROAD_STRAIGHT
+
+            blocks.append(self._block(block_id, x, y, z, rotation))
+            if index % 3 == 0 and index not in {0, length - 1}:
+                blocks.append(self._block(PILLAR_SQUARE, x - 3.0, y - 6.0, z, rotation))
+                blocks.append(self._block(PILLAR_SQUARE, x + 3.0, y - 6.0, z, rotation))
+
+            dx, dz = directions[rotation]
+            x += dx
+            z += dz
+
+        return blocks
+
+    def _sample_indexes(self, length: int, count: int) -> set[int]:
+        candidate_indexes = list(range(1, length - 1))
+        self.random.shuffle(candidate_indexes)
+        return set(sorted(candidate_indexes[:count]))
 
 
 def generate_track(
@@ -128,7 +175,9 @@ def generate_track(
             length=10 if length is None else length,
             difficulty=difficulty,
         )
-    raise ValueError("track must be one of: simple-circuit, obstacle")
+    if track == "wild":
+        return generator.generate_wild_build(length=18 if length is None else length)
+    raise ValueError("track must be one of: simple-circuit, obstacle, wild")
 
 
 def generate_code(
@@ -159,17 +208,15 @@ def generate_all_tests(*, verbose: bool = True) -> dict[str, str]:
             TrackGenerator(seed=123),
             lambda generator: generator.generate_simple_circuit(length=8),
         ),
-        "MEDIUM_RALLY": (
+        "MEDIUM_BRIDGE": (
             TrackGenerator(seed=456),
             lambda generator: generator.generate_with_obstacles(
                 length=10, difficulty="medium"
             ),
         ),
-        "HARD_RALLY": (
+        "AI_WILD_BUILD": (
             TrackGenerator(seed=789),
-            lambda generator: generator.generate_with_obstacles(
-                length=12, difficulty="hard"
-            ),
+            lambda generator: generator.generate_wild_build(length=18),
         ),
     }
 
@@ -212,13 +259,13 @@ def _print_summary(name: str, blocks: list[Block], code: str) -> None:
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Generate deterministic PolyTrack1 test-builder codes."
+        description="Generate PolyTrack 0.5.2-compatible PolyTrack1 codes."
     )
     parser.add_argument(
         "track",
         nargs="?",
         default="all",
-        choices=("all", "simple-circuit", "obstacle"),
+        choices=("all", "simple-circuit", "obstacle", "wild"),
         help="Track preset to generate. Use 'all' for verbose sample output.",
     )
     parser.add_argument("--length", type=int, help="Number of road segments to build.")
@@ -226,7 +273,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--difficulty",
         choices=("easy", "medium", "hard"),
         default="medium",
-        help="Obstacle density for the obstacle preset.",
+        help="Obstacle density for the bridge preset.",
     )
     parser.add_argument("--seed", type=int, default=123, help="Deterministic RNG seed.")
     parser.add_argument(

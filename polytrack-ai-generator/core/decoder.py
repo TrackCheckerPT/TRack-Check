@@ -1,17 +1,20 @@
-"""PolyTrack export-code decoder."""
+"""PolyTrack 0.5.2 export-code decoder."""
 
 from __future__ import annotations
 
 import base64
-import json
+import binascii
 from typing import Any
 
-from core.encoder import EXPORT_PREFIX, FORMAT_NAME, FORMAT_VERSION
+import msgpack
+import zstandard as zstd
+
+from core.encoder import EXPORT_PREFIX, TRACK_VERSION
 from utils.validator import validate_track
 
 
-def import_polytrack(code: str) -> tuple[list[dict[str, Any]], str | None]:
-    """Decode a PolyTrack1-prefixed export code.
+def import_polytrack(code: str) -> tuple[list[list[int | float]], str | None]:
+    """Decode a PolyTrack1 export code into compact block arrays.
 
     Returns ``(blocks, None)`` on success and ``([], error_message)`` on failure
     so command-line tools can report import problems without exception handling.
@@ -26,23 +29,40 @@ def import_polytrack(code: str) -> tuple[list[dict[str, Any]], str | None]:
         return [], "Track code is missing an encoded payload"
 
     try:
-        padded_payload = payload + "=" * (-len(payload) % 4)
-        decoded_json = base64.urlsafe_b64decode(padded_payload.encode("ascii"))
-        document = json.loads(decoded_json.decode("utf-8"))
-    except (ValueError, json.JSONDecodeError, UnicodeDecodeError) as exc:
+        compressed = base64.b64decode(payload.encode("utf-8"), validate=True)
+        packed = zstd.decompress(compressed)
+        document = msgpack.unpackb(packed, raw=False)
+    except (
+        ValueError,
+        binascii.Error,
+        msgpack.ExtraData,
+        msgpack.FormatError,
+        zstd.ZstdError,
+        UnicodeDecodeError,
+    ) as exc:
         return [], f"Track code payload could not be decoded: {exc}"
 
-    if document.get("format") != FORMAT_NAME:
-        return [], "Track code format is not supported by this test builder"
-    if document.get("version") != FORMAT_VERSION:
-        return [], f"Unsupported track code version: {document.get('version')!r}"
+    package_error = _validate_package(document)
+    if package_error is not None:
+        return [], package_error
 
-    blocks = document.get("blocks")
-    if not isinstance(blocks, list):
-        return [], "Track code payload must contain a block list"
-
+    blocks = document["b"]
     validation = validate_track(blocks)
     if validation:
         return [], validation
 
     return blocks, None
+
+
+def _validate_package(document: Any) -> str | None:
+    if not isinstance(document, dict):
+        return "Track code payload must be a metadata object"
+    if document.get("v") != TRACK_VERSION:
+        return f"Unsupported track code version: {document.get('v')!r}"
+    if not isinstance(document.get("a"), str) or not document["a"]:
+        return "Track code payload must contain an author"
+    if not isinstance(document.get("n"), str) or not document["n"]:
+        return "Track code payload must contain a track name"
+    if not isinstance(document.get("b"), list):
+        return "Track code payload must contain a block list"
+    return None
