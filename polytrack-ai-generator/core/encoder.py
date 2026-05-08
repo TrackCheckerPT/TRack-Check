@@ -1,32 +1,49 @@
-"""PolyTrack export-code encoder.
+"""PolyTrack 0.5.2 export-code encoder.
 
-The official Kodub game currently uses the ``PolyTrack1`` code prefix.  This
-module provides a deterministic, test-friendly encoder for the repository's
-normalized block schema so generated tracks can be round-tripped and regression
-checked while the project grows toward fuller editor compatibility.
+PolyTrack 0.5.2 expects ``PolyTrack1`` codes to contain a Base64-encoded
+Zstandard stream. The decompressed bytes are a MessagePack map with track
+metadata and a compact block array list.
 """
 
 from __future__ import annotations
 
 import base64
-import json
-from typing import Any, Iterable, Mapping
+from collections.abc import Iterable, Sequence
+
+import msgpack
+import zstandard as zstd
+
+from utils.validator import validate_track
 
 EXPORT_PREFIX = "PolyTrack1"
-FORMAT_NAME = "TRack-Check/PolyTrack1"
-FORMAT_VERSION = 1
+TRACK_VERSION = 2
+DEFAULT_AUTHOR = "Zawg"
+DEFAULT_TRACK_NAME = "AI_Wild_Build"
+ZSTD_LEVEL = 3
+
+Block = Sequence[int | float]
 
 
-def export_polytrack(blocks: Iterable[Mapping[str, Any]]) -> str:
-    """Encode normalized track blocks into a PolyTrack1-prefixed export code."""
+def export_polytrack(
+    blocks: Iterable[Block],
+    *,
+    author: str = DEFAULT_AUTHOR,
+    name: str = DEFAULT_TRACK_NAME,
+) -> str:
+    """Encode PolyTrack 0.5.2 blocks into a game-compatible export code."""
 
-    payload = {
-        "format": FORMAT_NAME,
-        "version": FORMAT_VERSION,
-        "blocks": list(blocks),
+    block_list = [list(block) for block in blocks]
+    validation = validate_track(block_list)
+    if validation is not None:
+        raise ValueError(validation)
+
+    track_package = {
+        "v": TRACK_VERSION,
+        "a": author,
+        "n": name,
+        "b": block_list,
     }
-    encoded_json = json.dumps(payload, separators=(",", ":"), sort_keys=True).encode(
-        "utf-8"
-    )
-    encoded_payload = base64.urlsafe_b64encode(encoded_json).decode("ascii")
-    return f"{EXPORT_PREFIX}{encoded_payload.rstrip('=')}"
+    packed = msgpack.packb(track_package, use_bin_type=True)
+    compressed = zstd.compress(packed, level=ZSTD_LEVEL)
+    encoded_payload = base64.b64encode(compressed).decode("utf-8")
+    return f"{EXPORT_PREFIX}{encoded_payload}"

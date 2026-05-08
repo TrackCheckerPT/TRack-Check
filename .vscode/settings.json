@@ -1,0 +1,4 @@
+{
+  "git.rebaseWhenSync": false,
+  "task.allowAutomaticTasks": "on"
+}

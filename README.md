@@ -1,6 +1,6 @@
 # TRack-Check
 
-Track-checking and test-building utilities for generated Kodub PolyTrack tracks.
+Track-checking and PolyTrack 0.5.2 export-code utilities for generated Kodub PolyTrack tracks.
 
 See [`polytrack-ai-generator/README.md`](polytrack-ai-generator/README.md) for
 the current Python test-builder workflow.
@@ -17,3 +17,23 @@ Useful VS Code tasks are also available from **Terminal > Run Task**:
 - `PolyTrack: generate one code` prints a single copy-ready `PolyTrack1` code.
 - `PolyTrack: generate sample codes` prints representative `PolyTrack1` sample
   codes and ASCII previews.
+
+## Git sync troubleshooting
+
+If VS Code or Codespaces reports that local and remote branches have diverged,
+run this once in the terminal before pressing **Sync Changes** again:
+
+```bash
+git config pull.rebase false
+git pull --no-rebase origin main
+```
+
+This repository also configures merge-based pulls automatically in two places:
+
+- the devcontainer runs `git config pull.rebase false` every time the container
+  starts, not just when it is created;
+- VS Code runs the `Git: configure merge pulls` task on folder open, so existing
+  Codespaces get the same repository-local Git setting after reload/reattach.
+
+Those safeguards prevent Git's "Need to specify how to reconcile divergent
+branches" message during future **Sync Changes** operations.

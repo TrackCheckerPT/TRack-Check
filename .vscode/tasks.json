@@ -2,6 +2,15 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "Git: configure merge pulls",
+      "type": "shell",
+      "command": "git config pull.rebase false",
+      "runOptions": {
+        "runOn": "folderOpen"
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "PolyTrack: run tests",
       "type": "shell",
       "command": "python -m pytest polytrack-ai-generator/tests -q",
